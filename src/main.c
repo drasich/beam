@@ -67,8 +67,12 @@ create_panes(Evas_Object* win, Eina_Bool hor)
     monitor_init();
     const char* path = "/home/chris/code/slime/src/";
     const char* command = "cd /home/chris/code/slime && waf";
+    //const char* command = "cd /home/chris/code/slime && ls";
 
-    monitor_new("/home/chris/code/slime/src/", NULL, command);
+    Monitor* m = monitor_new("/home/chris/code/slime/src/", NULL, command);
+    Display* d = display_console_new();
+    m->display = d;
+
 
     // run the mainloop and process events and callbacks
     elm_run();

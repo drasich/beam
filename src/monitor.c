@@ -7,9 +7,8 @@
 static Eina_Bool already = EINA_FALSE;
 
 static Eina_Bool
-_msg_from_child_handler(void *data EINA_UNUSED, int type EINA_UNUSED, void *event)
+_msg_from_child_handler(void *data, int type EINA_UNUSED, void *event)
 {
-  printf("COME TO THIS FCCCCCCCCCCCCCI received a message from my child \n");
    Ecore_Exe_Event_Data *dataFromProcess = (Ecore_Exe_Event_Data *)event;
    char msg[BUFFER_SIZE];
 
@@ -29,8 +28,10 @@ _msg_from_child_handler(void *data EINA_UNUSED, int type EINA_UNUSED, void *even
      }
    else
     {
-     //fprintf(stdout, "I received a message from my child: %s\n", msg);
-     printf("I received a message from my child: %s\n", msg);
+     if (data){
+       Display* d = data;
+       d->text_add(d, msg);
+      }
     }
 
    return ECORE_CALLBACK_DONE;
@@ -40,9 +41,7 @@ _msg_from_child_handler(void *data EINA_UNUSED, int type EINA_UNUSED, void *even
 
 static void chris_free(void * data, const Ecore_Exe* exe)
 {
-  printf("DID YOU CALL ME !!!!!!!!!!!!!!!!!!!\n");
   already = EINA_FALSE;
-  
 }
 
 
@@ -55,16 +54,18 @@ monitor_callback(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, con
   if (eina_str_has_extension(path, ".c")
         ||eina_str_has_extension(path, ".h")
         ) {
-    const char* command = data;
-    printf("event : %d, path %s, command %s \n", event, path, command);
+
+    Monitor* m = data;
+    printf("event : %d, path %s, command %s \n", event, path, m->command);
 
 
     pid_t childPid;
     Ecore_Exe *childHandle;
 
-    childHandle = ecore_exe_pipe_run(command,
+    childHandle = ecore_exe_pipe_run(m->command,
           //ECORE_EXE_PIPE_WRITE |
           //ECORE_EXE_PIPE_READ_LINE_BUFFERED |
+          ECORE_EXE_PIPE_ERROR |
           ECORE_EXE_PIPE_READ, NULL);
           //ECORE_EXE_NONE, NULL);
           //ECORE_EXE_PIPE_AUTO, NULL);
@@ -83,7 +84,8 @@ monitor_callback(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, con
      fprintf(stdout, "The child process has PID:%u\n", (unsigned int)childPid);
     already = EINA_TRUE;
    }
-   ecore_event_handler_add(ECORE_EXE_EVENT_DATA, _msg_from_child_handler, NULL);
+   ecore_event_handler_add(ECORE_EXE_EVENT_DATA, _msg_from_child_handler, m->display);
+   ecore_event_handler_add(ECORE_EXE_EVENT_ERROR, _msg_from_child_handler, m->display);
    ecore_exe_callback_pre_free_set(childHandle, chris_free);
 
   }
@@ -92,12 +94,19 @@ monitor_callback(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, con
 }
 
 
-void monitor_new(const char* path, Eina_List* extensions, const char* cmd)
+Monitor* monitor_new(const char* path, Eina_List* extensions, const char* cmd)
 {
+  Monitor* m = calloc(1, sizeof *m);
+
+  m->command = eina_stringshare_add(cmd);
+  //m->path = path;
+
   Ecore_File_Monitor * efm = ecore_file_monitor_add( path,
         monitor_callback,
-        (void*) eina_stringshare_add(cmd)
+        m
         );
+
+  return m;
 }
 
 
