@@ -93,6 +93,36 @@ monitor_callback(void *data, Ecore_File_Monitor *em, Ecore_File_Event event, con
 
 }
 
+static void 
+_recursive_add(const char* path, Monitor* m)
+{
+  printf("adding %s \n", path);
+  Ecore_File_Monitor * efm = ecore_file_monitor_add( path,
+        monitor_callback,
+        m
+        );
+
+  Eina_List* ls = ecore_file_ls(path);
+  Eina_List* l;
+  const char* file;
+
+  EINA_LIST_FOREACH(ls, l, file) {
+    int size = strlen(path) + strlen(file) +2;
+    //printf("%s and %s, size of : %d \n", path, file,  size);
+
+    char* realpath = calloc(1, size);
+    sprintf(realpath, "%s/%s", path, file);
+    //eina_str_join(realpath, size, "/", path, file);
+    //printf("realpath : %s \n", realpath);
+    if (ecore_file_is_dir(realpath)) {
+      printf("is dir %s \n", realpath);
+      _recursive_add(realpath, m);
+
+    }
+  }
+
+  eina_list_free(ls);
+}
 
 Monitor* monitor_new(const char* path, Eina_List* extensions, const char* cmd)
 {
@@ -101,10 +131,8 @@ Monitor* monitor_new(const char* path, Eina_List* extensions, const char* cmd)
   m->command = eina_stringshare_add(cmd);
   //m->path = path;
 
-  Ecore_File_Monitor * efm = ecore_file_monitor_add( path,
-        monitor_callback,
-        m
-        );
+  _recursive_add(path, m);
+
 
   return m;
 }
