@@ -74,10 +74,16 @@ create_panes(Evas_Object* win, Eina_Bool hor)
     Display* d = display_console_new();
     m->display = d;
 
+    const char* pathblend = "/home/chris/blend";
+    const char* commandblend = "cd /home/chris/tmp/ && blender --background %s --python /home/chris/code/exdeath/background.py";
+    Monitor* mblend = monitor_new(pathblend, NULL, command);
+
 
     // run the mainloop and process events and callbacks
     elm_run();
     elm_shutdown();
+    free(m);
+    free(d);
     monitor_shutdown();
     return 0;
  }
